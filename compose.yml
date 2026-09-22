@@ -1,0 +1,303 @@
+# Label Studio del HUB en el servidor GPU (IP_DEL_SERVIDOR).
+#
+# Todo corre en contenedores; el servidor solo aporta Docker, el RAID y ~/labelstudio.
+# El servidor es compartido: este stack no toca nada de lo que ya corre ahí.
+# Postgres propio sin puerto publicado, red propia, un solo puerto público.
+#
+#   docker compose up -d                                 servicio: db, app, nginx, historial, respaldo
+#   docker compose run --rm tools hub lista              CLI (el wrapper ./hub hace esto)
+#   docker compose run --rm certificado                  regenerar el certificado autofirmado
+
+name: labelstudio
+
+x-tools-image: &tools-image
+  build:
+    context: .
+    dockerfile: imagen/Dockerfile
+  image: labelstudio-hub-tools:local
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: labelstudio
+      POSTGRES_USER: labelstudio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta en .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      interna:
+        ipv4_address: 192.168.240.10
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U labelstudio -d labelstudio"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Topología oficial de Label Studio: nginx sirve el frontend estático y hace
+  # proxy a uWSGI. El `label-studio` a secas levanta el runserver de Django.
+  nginx:
+    image: heartexlabs/label-studio:${LS_VERSION:-1.23.0}
+    restart: unless-stopped
+    command: nginx
+    depends_on: [app]
+    # Solo HTTPS hacia afuera. No es opcional: el firewall de la universidad (App-ID
+    # "http-audio") bloquea el audio que viaja por HTTP plano, y sin TLS la
+    # contraseña también viaja en claro. El 8085 (HTTP) queda sin publicar.
+    # 127.0.0.1:18085 es HTTP solo para el propio servidor (túnel SSH).
+    ports:
+      - "${LS_PORT:-8081}:8086"
+      - "127.0.0.1:18085:8085"
+    environment:
+      APP_HOST: app
+      NGINX_SSL_CERT: /certs/cert.pem
+      NGINX_SSL_CERT_KEY: /certs/cert.key
+    volumes:
+      - lsdata:/label-studio/data
+      - ./certs:/certs:ro
+    networks:
+      interna:
+        ipv4_address: 192.168.240.12
+
+  app:
+    image: heartexlabs/label-studio:${LS_VERSION:-1.23.0}
+    restart: unless-stopped
+    command: label-studio-uwsgi
+    depends_on:
+      db:
+        condition: service_healthy
+    expose: ["8000"]
+    environment:
+      SECRET_KEY: ${LS_SECRET_KEY:?falta en .env}
+      # 4 por defecto. Cada anotación actualizada recalcula estadísticas de un proyecto
+      # de 96 000 tareas; con 4 procesos, reescribir 10 000 anotaciones tomaba ~90 min.
+      UWSGI_PROCESSES: "8"
+      DJANGO_DB: default
+      POSTGRE_NAME: labelstudio
+      POSTGRE_USER: labelstudio
+      POSTGRE_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRE_HOST: db
+      POSTGRE_PORT: 5432
+
+      # LABEL_STUDIO_HOST queda vacío a propósito: con host, el sync de storage
+      # guarda en cada tarea la URL absoluta (http://IP:puerto/data/local-files/…)
+      # y cambiar de IP, de esquema o a un nombre DNS rompe todas las tareas.
+      # Vacío, las URLs son relativas. LS_HOST solo sirve para el CSRF detrás de TLS.
+      CSRF_TRUSTED_ORIGINS: ${LS_HOST:?falta en .env}
+
+      # Admin inicial. Nadie más entra sin invitación.
+      LABEL_STUDIO_USERNAME: ${LS_ADMIN_EMAIL:?falta en .env}
+      LABEL_STUDIO_PASSWORD: ${LS_ADMIN_PASSWORD:?falta en .env}
+      LABEL_STUDIO_DISABLE_SIGNUP_WITHOUT_LINK: "true"
+
+      # Los archivos no se suben: Label Studio los sirve desde donde ya están.
+      LOCAL_FILES_SERVING_ENABLED: "true"
+      LOCAL_FILES_DOCUMENT_ROOT: /label-studio/files
+    volumes:
+      - lsdata:/label-studio/data
+      # Fotos de camera trap. El RAID es de solo lectura y así se queda.
+      - /mnt/DGX0Raid:/label-studio/files/dgxraid:ro
+      # Datos propios (audio, video, imágenes, texto), un subdirectorio por proyecto.
+      - ${LS_DATOS:?falta en .env}:/label-studio/files/datos:ro
+    networks:
+      interna:
+        ipv4_address: 192.168.240.11
+
+  # ---------------------------------------------------------------- historial --
+  # Esquema, rol y permisos del historial. Idempotente; corre en cada `up`.
+  historial-init:
+    image: postgres:16-alpine
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    command: >
+      psql -h db -U labelstudio -d labelstudio -v ON_ERROR_STOP=1
+           -v pass=${HISTORIAL_DB_PASSWORD:?falta en .env} -f /init.sql
+    volumes:
+      - ./historial/init.sql:/init.sql:ro
+    networks: [interna]
+
+  # Registro append-only de cada versión de cada anotación (webhook + conciliación).
+  # Usa un rol con INSERT/SELECT sobre su esquema y SELECT sobre dos tablas de LS.
+  historial:
+    <<: *tools-image
+    restart: unless-stopped
+    command: python /app/historial/historial.py
+    depends_on:
+      historial-init:
+        condition: service_completed_successfully
+    environment:
+      HISTORIAL_DSN: postgresql://historial:${HISTORIAL_DB_PASSWORD}@db:5432/labelstudio
+      HISTORIAL_TOKEN: ${HISTORIAL_TOKEN:?falta en .env}
+      RECONCILIAR_CADA: "300"
+    expose: ["8000"]
+    networks:
+      interna:
+        ipv4_address: 192.168.240.13
+        # Label Studio valida la URL del webhook con el URLField de Django, que
+        # exige dominio: `http://historial:8000` no pasa.
+        aliases: [historial.labelstudio.internal]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/salud', timeout=3).status == 200 else 1)"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+
+  # ---------------------------------------------------------------- respaldo --
+  respaldo:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"   # los archivos quedan del usuario del servidor
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["sh", "/respaldo.sh"]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      TZ: America/Guayaquil
+      RESPALDO_HORA: "0330"
+      RESPALDO_DIAS: "14"
+    volumes:
+      - ./respaldo/respaldo.sh:/respaldo.sh:ro
+      - ./backups:/backups
+      - lsdata:/lsdata:ro
+    networks:
+      interna:
+        ipv4_address: 192.168.240.14
+    healthcheck:
+      # Sano si el último respaldo tiene menos de 26 h (o si todavía no toca el primero).
+      test: ["CMD-SHELL", "[ ! -f /backups/.ultimo ] || [ $$(( $$(date +%s) - $$(cat /backups/.ultimo) )) -lt 93600 ]"]
+      interval: 10m
+      timeout: 5s
+
+  # -------------------------------------------------------------- herramientas --
+  # CLI `hub` y migraciones. No queda corriendo: `docker compose run --rm tools …`.
+  tools:
+    <<: *tools-image
+    profiles: [tools]
+    environment:
+      LS_URL: http://nginx:8085
+      LS_API_KEY: ${LS_API_KEY:?falta en .env}
+      LS_API_KEY_MATLAB: ${LS_API_KEY_MATLAB:-}
+      FOTOS_RAIZ: ${FOTOS_RAIZ:?falta en .env}   # dónde están las fotos, dentro del contenedor
+      HISTORIAL_TOKEN: ${HISTORIAL_TOKEN}
+    working_dir: /entrada
+    volumes:
+      - /mnt/DGX0Raid:/label-studio/files/dgxraid:ro
+      - ${LS_DATOS}:/label-studio/files/datos:ro
+      - ./entrada:/entrada:ro                                  # CSVs de BirdNET, vocabularios
+      - ${ETIQUETAS_PREVIAS:?falta en .env}:/fuentes/etiquetas:ro
+    networks: [interna]
+
+  # Embeddings de recortes para el buscador por especie (BioCLIP 2, SigLIP).
+  # Imagen aparte porque torch con CUDA pesa varios GB. A demanda, en UNA sola GPU:
+  # el DGX es compartido y la GPU 0 suele estar ocupada por otros.
+  #   docker compose run --rm embeddings python buscador/comparar_modelos.py
+  embeddings:
+    build:
+      context: .
+      dockerfile: imagen/gpu.Dockerfile
+    image: labelstudio-hub-gpu:local
+    profiles: [gpu]
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"   # resultados y pesos quedan del usuario del servidor
+    working_dir: /app
+    environment:
+      # buscar.py lee las etiquetas de Label Studio (las anotaciones son la verdad).
+      LS_URL: http://nginx:8085
+      LS_API_KEY: ${LS_API_KEY}
+      FOTOS_RAIZ: ${FOTOS_RAIZ:?falta en .env}   # dónde están las fotos, dentro del contenedor
+    shm_size: 4gb                                   # workers del DataLoader
+    volumes:
+      - /mnt/DGX0Raid:/label-studio/files/dgxraid:ro
+      - ${ETIQUETAS_PREVIAS:?falta en .env}:/fuentes/etiquetas:ro
+      - ./modelos:/modelos            # pesos descargados (~5 GB), se reutilizan
+      - ./recortes:/recortes          # un recorte por caja; los sirve el buscador
+      - ./resultados:/resultados
+      # El código también está en la imagen; montarlo evita reconstruir 7 GB por
+      # cada cambio de una línea.
+      - ./buscador:/app/buscador:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              # UUID y no índice: el orden de CUDA puede no ser el de nvidia-smi.
+              # Por defecto la GPU 1 del DGX.
+              device_ids: ["${GPU_EMBEDDINGS:-GPU-00000000-0000-0000-0000-000000000000}"]
+              capabilities: [gpu]
+    networks: [interna]
+
+  # La grilla del buscador por especie. Sin GPU: los embeddings ya están hechos y
+  # el modelo solo se carga (en CPU) si alguien busca por texto libre.
+  # Escribe en Label Studio con el token de quien usa la grilla, no con el suyo.
+  buscador:
+    build:
+      context: .
+      dockerfile: imagen/gpu.Dockerfile
+    image: labelstudio-hub-gpu:local
+    profiles: [buscador]
+    restart: unless-stopped
+    command: python /app/buscador/servidor.py
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    ports:
+      - "${PUERTO_BUSCADOR:-4200}:4200"      # puerto del buscador
+    environment:
+      LS_URL: http://nginx:8085
+      LS_PUBLICO: https://${CERT_IP:?falta en .env}:${LS_PORT:-8081}   # para los enlaces del panel
+      LS_API_KEY: ${LS_API_KEY}
+      FOTOS_RAIZ: ${FOTOS_RAIZ:?falta en .env}   # dónde están las fotos, dentro del contenedor
+      OMP_NUM_THREADS: "8"                   # el DGX es compartido: no acapara CPU
+    volumes:
+      - /mnt/DGX0Raid:/label-studio/files/dgxraid:ro
+      - ${ETIQUETAS_PREVIAS:?falta en .env}:/fuentes/etiquetas:ro
+      - ./modelos:/modelos                    # pesos y cachés de torch (HF_HOME)
+      - ./recortes:/recortes:ro
+      - ./resultados:/resultados:ro
+      - ./datos-buscador:/datos-buscador      # los rechazos, que Label Studio no guarda
+      - ./certs-buscador:/certs:ro            # certificado propio, no el de Label Studio
+      - ./buscador:/app/buscador:ro
+    networks:
+      interna:
+        ipv4_address: 192.168.240.15
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,ssl,sys; ctx=ssl._create_unverified_context(); sys.exit(0 if urllib.request.urlopen('https://localhost:4200/api/salud', timeout=5, context=ctx).status == 200 else 1)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  # Certificado autofirmado. Corre como root solo para dejar la llave legible
+  # únicamente por el nginx del contenedor (uid 1001).
+  certificado:
+    <<: *tools-image
+    profiles: [tools]
+    user: "0"
+    entrypoint: ["/app/ops/certificado.sh"]
+    environment:
+      CERT_IP: ${CERT_IP:?falta en .env}
+      CERT_DIR: ${CERT_DIR:-/certs}
+      CERT_UID: ${CERT_UID:-1001}
+    volumes:
+      - ./certs:/certs
+      - ./certs-buscador:/certs-buscador
+    network_mode: none
+
+volumes:
+  pgdata:
+  lsdata:
+
+# IPs fijas para los servicios de larga vida. No es cosmético: nginx resuelve `app`
+# una sola vez al arrancar, y si `app` se recrea con otra IP, nginx sigue mandando
+# el tráfico a la IP vieja, que puede haber heredado otro contenedor (pasó el
+# 17 sep 2026: el login terminó en el servicio historial). Los contenedores de un
+# solo uso (tools, historial-init) toman IPs de la mitad alta, nunca de estas.
+# Subred elegida contra las del servidor compartido; evita la LAN del campus.
+networks:
+  interna:
+    ipam:
+      config:
+        - subnet: 192.168.240.0/24
+          ip_range: 192.168.240.128/25

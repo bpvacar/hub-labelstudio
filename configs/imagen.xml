@@ -1,0 +1,24 @@
+<!--
+  Modo imagen: clasificación de la imagen entera, sin cajas. Para fotos de
+  campo, especímenes, capturas de iNaturalist, recortes ya hechos por otro
+  modelo. Si hace falta localizar, el modo es camtrap.
+-->
+<!-- flex-wrap: en pantallas angostas la columna lateral baja debajo de la foto.
+     Sin wrap, la foto se aplasta a 1 px de ancho. -->
+<View style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start">
+  <View style="flex:1 1 560px; min-width:0">
+    <Image name="image" value="$image" zoom="true" zoomControl="true"/>
+  </View>
+  <View style="flex:0 1 300px; min-width:240px">
+    <Header value="Especie" size="5"/>
+    <Taxonomy name="especie" toName="image" placeholder="Buscar especie…">
+{{ESPECIES}}
+    </Taxonomy>
+    <Choices name="calidad" toName="image" showInline="true">
+      <Choice value="buena"/>
+      <Choice value="usable"/>
+      <Choice value="descartar"/>
+    </Choices>
+    <TextArea name="nota" toName="image" rows="2" maxSubmissions="1" editable="true" placeholder="Nota"/>
+  </View>
+</View>

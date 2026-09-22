@@ -1,0 +1,36 @@
+<!--
+  Modo audio: detección de eventos sonoros sobre el espectrograma.
+  Se marca el segmento, se le pone la clase (grupo taxonómico o ruido) y, si se
+  sabe, la especie. Las detecciones de BirdNET entran como predictions con esta
+  misma forma, así que corregir una es mover el borde o cambiar la especie.
+  El clip entero lleva las condiciones de grabación: lluvia y viento son la
+  razón más común de un falso negativo, y hay que poder filtrarlas al evaluar.
+-->
+<View>
+  <Labels name="clase" toName="audio" choice="single" zoom="true">
+{{CLASES}}
+  </Labels>
+  <Audio name="audio" value="$audio" spectrogram="true" showlabels="true" showscores="true" height="140" waveheight="48"/>
+
+  <View visibleWhen="region-selected" whenTagName="clase">
+    <Header value="Especie del segmento" size="5"/>
+    <Taxonomy name="especie" toName="audio" perRegion="true" maxUsages="1" placeholder="Buscar especie…">
+{{ESPECIES}}
+    </Taxonomy>
+    <Choices name="certeza" toName="audio" perRegion="true" showInline="true">
+      <Choice value="segura"/>
+      <Choice value="probable"/>
+      <Choice value="posible"/>
+    </Choices>
+  </View>
+
+  <Header value="Condiciones del clip" size="5"/>
+  <Choices name="condiciones" toName="audio" choice="multiple" showInline="true">
+    <Choice value="lluvia"/>
+    <Choice value="viento"/>
+    <Choice value="ruido antrópico"/>
+    <Choice value="clip corrupto"/>
+    <Choice value="sin eventos"/>
+  </Choices>
+  <TextArea name="nota" toName="audio" rows="2" maxSubmissions="1" editable="true" placeholder="Nota"/>
+</View>

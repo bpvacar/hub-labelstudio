@@ -1,0 +1,58 @@
+valor,cientifico,rango,confianza,ayuda
+falso positivo,,,,(detector error)
+Acuchi (guatín) rojo,Myoprocta acouchy,species,medium,Myoprocta acouchy · Red Acouchi · confianza media
+Acuchi (guatín) verde,Myoprocta pratti,species,high,Myoprocta pratti · Green Acouchi
+Agutí (Guatusa) centroamericana,Dasyprocta punctata,species,low,Dasyprocta punctata · Central American Agouti · REVISAR: mapeo de confianza baja
+Agutí (Guatusa) negra,Dasyprocta fuliginosa,species,high,Dasyprocta fuliginosa · Black Agouti
+Ardilla roja norteamazónica,Sciurus igniventris,species,high,Sciurus igniventris · Northern Amazon Red Squirrel
+Armadillo gigante,Priodontes maximus,species,high,Priodontes maximus · Giant Armadillo
+Avesol,Eurypyga helias,species,high,Eurypyga helias · Sunbittern
+Caimán enano,Paleosuchus trigonatus,species,medium,Paleosuchus trigonatus · Smooth-fronted Caiman · confianza media
+Coatí de nariz blanca,Nasua nasua,species,low,Nasua nasua · South American Coati · REVISAR: mapeo de confianza baja
+Colibri (quinde),Trochilidae,family,high,Trochilidae · Hummingbird (unspecified)
+Conejo de Thomas,Sylvilagus brasiliensis,species,medium,Sylvilagus brasiliensis · Tapeti · confianza media
+Corcovado carirrojo,Odontophorus gujanensis,species,low,Odontophorus gujanensis · Marbled Wood-Quail · REVISAR: mapeo de confianza baja
+Corzuela (venado) gris americano,Mazama nemorivaga,species,medium,Mazama nemorivaga · Amazonian Brown Brocket · confianza media
+Corzuela (venado) rojo americano,Mazama americana,species,high,Mazama americana · Red Brocket Deer
+Garza tigre,Tigrisoma lineatum,species,high,Tigrisoma lineatum · Rufescent Tiger-Heron
+Guanta o paca de tierras,Cuniculus paca,species,high,Cuniculus paca · Lowland Paca
+Halcón montés barrado o chico,Micrastur ruficollis,species,low,Micrastur ruficollis · Barred Forest-Falcon · REVISAR: mapeo de confianza baja
+Jacamará erejiblanco,Galbalcyrhynchus leucotis,species,medium,Galbalcyrhynchus leucotis · White-eared Jacamar · confianza media
+Jaguar,Panthera onca,species,high,Panthera onca · Jaguar
+Mapache cangrejero,Procyon cancrivorus,species,high,Procyon cancrivorus · Crab-eating Raccoon
+Margay,Leopardus wiedii,species,high,Leopardus wiedii · Margay
+Mono araña,Ateles belzebuth,species,medium,Ateles belzebuth · White-bellied Spider Monkey · confianza media
+"Mono ardilla, varizo",Saimiri sciureus,species,high,Saimiri sciureus · Squirrel Monkey
+Mono aullador rojo,Alouatta seniculus,species,high,Alouatta seniculus · Red Howler Monkey
+Mono capuchino blanco ecuatoriano,Cebus albifrons,species,medium,Cebus albifrons · Ecuadorian White-fronted Capuchin · confianza media
+Murcielago frugivoro,Phyllostomidae,family,medium,Phyllostomidae · Fruit-eating bat · confianza media
+Ocelote,Leopardus pardalis,species,high,Leopardus pardalis · Ocelot
+Oso hormiguero gigante,Myrmecophaga tridactyla,species,high,Myrmecophaga tridactyla · Giant Anteater
+Oso hormiguero sureño,Tamandua tetradactyla,species,high,Tamandua tetradactyla · Southern Tamandua
+Paujil,Mitu salvini,species,high,Mitu salvini · Salvin's Curassow
+Paujil nocturno,Nothocrax urumutum,species,high,Nothocrax urumutum · Nocturnal Curassow
+Pava,Penelope,genus,high,Penelope · Guan (unspecified)
+Pava silvosa,Penelope jacquacu,species,high,Penelope jacquacu · Spix's Guan
+Pecarí de labio blanco (guangana),Tayassu pecari,species,high,Tayassu pecari · White-lipped Peccary
+Pecarí o saíno de collar,Pecari tajacu,species,high,Pecari tajacu · Collared Peccary
+Pellorneidae,Pellorneidae,family,low,Pellorneidae · Ground babblers · REVISAR: mapeo de confianza baja
+Perdíz abigarrada,Crypturellus variegatus,species,high,Crypturellus variegatus · Variegated Tinamou
+Perdíz garganta blanca,Tinamus guttatus,species,high,Tinamus guttatus · White-throated Tinamou
+Perezoso de dos dedos,Choloepus didactylus,species,high,Choloepus didactylus · Linnaeus's Two-toed Sloth
+Pudu,Pudu mephistophiles,species,low,Pudu mephistophiles · Northern Pudu · REVISAR: mapeo de confianza baja
+Puma,Puma concolor,species,high,Puma concolor · Puma
+Raposa común,Didelphis marsupialis,species,high,Didelphis marsupialis · Common Opossum
+Rasconzuelo estriado,Chamaeza nobilis,species,medium,Chamaeza nobilis · Striated Antthrush · confianza media
+Rata Arboricola,Echimyidae,family,medium,Echimyidae · Arboreal spiny rat · confianza media
+raton,Rodentia,order,high,Rodentia · Mouse/rat (unspecified)
+Tapir Amazónico,Tapirus terrestris,species,high,Tapirus terrestris · Lowland Tapir
+Tayo,Steatornis caripensis,species,medium,Steatornis caripensis · Oilbird · confianza media
+Tiara o cabeza de mate,Eira barbara,species,high,Eira barbara · Tayra
+Tinamues,Tinamidae,family,high,Tinamidae · Tinamou (unspecified)
+Tinamú mayor u oliváceo,Tinamus major,species,low,Tinamus major · Great Tinamou · REVISAR: mapeo de confianza baja
+Trompetero,Psophia crepitans,species,high,Psophia crepitans · Grey-winged Trumpeter
+Tucan Amazonico,Ramphastos,genus,medium,Ramphastos · Toucan (unspecified) · confianza media
+Tórtola o paloma fretigriz,Leptotila rufaxilla,species,medium,Leptotila rufaxilla · Grey-fronted Dove · confianza media
+Yaguarundi,Herpailurus yagouaroundi,species,high,Herpailurus yagouaroundi · Jaguarundi
+Zorro (perro) de orejas cortas,Atelocynus microtis,species,high,Atelocynus microtis · Short-eared Dog
+Zorro (perro) vinagre,Speothos venaticus,species,high,Speothos venaticus · Bush Dog

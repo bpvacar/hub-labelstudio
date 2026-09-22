@@ -1,0 +1,14 @@
+.env
+.git
+certs
+datos
+backups
+entrada
+logs
+**/__pycache__
+**/.venv
+modelos
+resultados
+recortes
+datos-buscador
+certs-buscador

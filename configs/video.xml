@@ -1,0 +1,32 @@
+<!--
+  Modo video: video de camera trap. Dos capas independientes:
+  cajas con seguimiento (qué animal y dónde, cuadro a cuadro) y segmentos en la
+  línea de tiempo (qué está haciendo). El framerate es por proyecto: si los
+  videos no son de 30 fps hay que pasarlo con la opción fps de `hub nuevo video`.
+-->
+<View>
+  <Video name="video" value="$video" framerate="{{FPS}}"/>
+  <Labels name="clase" toName="video" allowEmpty="true">
+{{CLASES}}
+  </Labels>
+  <VideoRectangle name="caja" toName="video"/>
+
+  <View visibleWhen="region-selected" whenTagName="caja">
+    <Header value="Especie de la caja seleccionada" size="5"/>
+    <Taxonomy name="especie" toName="video" perRegion="true" maxUsages="1" placeholder="Buscar especie…">
+{{ESPECIES}}
+    </Taxonomy>
+  </View>
+
+  <Header value="Comportamiento" size="5"/>
+  <TimelineLabels name="comportamiento" toName="video">
+    <Label value="forrajeo" background="#2E7D32"/>
+    <Label value="desplazamiento" background="#1565C0"/>
+    <Label value="vigilancia" background="#F9A825"/>
+    <Label value="interacción" background="#6A1B9A"/>
+    <Label value="marcaje" background="#C62828"/>
+  </TimelineLabels>
+
+  <Number name="individuos" toName="video" min="0" placeholder="Individuos en el video"/>
+  <TextArea name="nota" toName="video" rows="2" maxSubmissions="1" editable="true" placeholder="Nota"/>
+</View>

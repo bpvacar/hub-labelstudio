@@ -1,0 +1,29 @@
+<!--
+  Modo texto: extracción de entidades en documentos (reportes de campo,
+  literatura gris, notas de guardaparques). Marca menciones de especie, lugar
+  y fecha, y clasifica si el documento sirve como registro de presencia.
+-->
+<View>
+  <Labels name="entidad" toName="text">
+    <Label value="especie" background="#2E7D32"/>
+    <Label value="lugar" background="#1565C0"/>
+    <Label value="fecha" background="#F9A825"/>
+    <Label value="conteo" background="#6A1B9A"/>
+    <Label value="método" background="#00838F"/>
+  </Labels>
+  <Text name="text" value="$text" valueType="url" granularity="word"/>
+
+  <View visibleWhen="region-selected" whenLabelValue="especie">
+    <Header value="Especie mencionada" size="5"/>
+    <Taxonomy name="especie" toName="text" perRegion="true" maxUsages="1" placeholder="Buscar especie…">
+{{ESPECIES}}
+    </Taxonomy>
+  </View>
+
+  <Header value="Documento" size="5"/>
+  <Choices name="registro" toName="text" showInline="true">
+    <Choice value="registro de presencia"/>
+    <Choice value="menciona sin registrar"/>
+    <Choice value="irrelevante"/>
+  </Choices>
+</View>

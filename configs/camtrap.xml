@@ -1,0 +1,36 @@
+<!--
+  Modo camtrap: fotos de camera trap. Misma lógica que el labeler de MATLAB,
+  sin sus defectos: la caja dice QUÉ tipo de objeto es (las clases de
+  MegaDetector), y la especie se asigna POR CAJA. Una caja sin especie es una
+  caja que nadie revisó; "falso positivo" es un valor de especie, no una clase.
+  El conteo de individuos es por foto, no por caja (las manadas de pecarí).
+-->
+<!-- flex-wrap: en pantallas angostas la columna lateral baja debajo de la foto.
+     Sin wrap, la foto se aplasta a 1 px de ancho. -->
+<View style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start">
+  <View style="flex:1 1 560px; min-width:0">
+    <Image name="image" value="$image" zoom="true" zoomControl="true" rotateControl="false" crosshair="true"/>
+  </View>
+  <View style="flex:0 1 300px; min-width:240px">
+    <Header value="Caja" size="5"/>
+    <RectangleLabels name="caja" toName="image" canRotate="false" strokeWidth="2">
+      <Label value="animal" background="#2E7D32" hotkey="a"/>
+      <Label value="human" background="#C62828" hotkey="h"/>
+      <Label value="vehicle" background="#1565C0" hotkey="v"/>
+    </RectangleLabels>
+
+    <View visibleWhen="region-selected" whenTagName="caja">
+      <Header value="Especie de la caja seleccionada" size="5"/>
+      <Taxonomy name="especie" toName="image" perRegion="true" maxUsages="1" placeholder="Buscar especie…">
+{{ESPECIES}}
+      </Taxonomy>
+    </View>
+
+    <Header value="Foto" size="5"/>
+    <Number name="individuos" toName="image" min="0" placeholder="Individuos en la foto"/>
+    <Choices name="revision" toName="image" choice="multiple" showInline="true">
+      <Choice value="incierto"/>
+    </Choices>
+    <TextArea name="nota" toName="image" rows="2" maxSubmissions="1" editable="true" placeholder="Nota"/>
+  </View>
+</View>

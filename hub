@@ -1,0 +1,6 @@
+#!/bin/sh
+# Wrapper del servidor: `hub …` corre dentro del contenedor tools.
+# No hay Python ni dependencias en el host; solo Docker.
+cd "$(dirname "$(readlink -f "$0")")" || exit 1
+docker compose build -q tools >/dev/null || exit 1
+exec docker compose run --rm tools hub "$@"

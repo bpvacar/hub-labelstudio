@@ -1,0 +1,246 @@
+/* El buscador por especie.
+   Las fotos de camera trap son verdes, marrones y grises de infrarrojo. La
+   interfaz se pone oscura y desaturada para que el ojo quede en la foto, y el
+   cian —que no existe en el bosque de noche— queda reservado para una sola cosa:
+   lo que la persona marcó. */
+
+:root {
+  --fondo: #12140f;
+  --panel: #1b1e17;
+  --borde: #2e3428;
+  --texto: #e9e8e0;
+  --tenue: #8e9380;
+  --senal: #62d9f5;   /* seleccionado */
+  --rechazo: #e8734a; /* descartar */
+  --hecho: #c7d98a;   /* ya identificado por una persona */
+  --celda: 132px;
+
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", monospace;
+}
+
+* { box-sizing: border-box; }
+
+/* `display` de una clase le gana al atributo hidden si no se fuerza. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font: 14px/1.45 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select { font: inherit; color: inherit; }
+
+button {
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: 3px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--tenue); }
+button.confirmar { background: var(--senal); border-color: var(--senal); color: #07231c; font-weight: 600; }
+button.rechazar { border-color: var(--rechazo); color: var(--rechazo); }
+button.plano { background: none; }
+a { color: var(--senal); }
+:focus-visible { outline: 2px solid var(--senal); outline-offset: 2px; }
+
+input, select {
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 3px;
+  padding: 6px 8px;
+}
+input:focus, select:focus { border-color: var(--senal); outline: none; }
+
+.dato { font: 12px/1.4 var(--mono); }
+.tenue { color: var(--tenue); }
+.empuje { flex: 1; }
+.error { color: var(--rechazo); min-height: 1.2em; }
+
+/* ------------------------------------------------------------------ entrada */
+.entrada { display: grid; place-items: center; min-height: 100vh; padding: 24px; }
+.entrada form { width: min(420px, 100%); display: grid; gap: 10px; }
+.entrada h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.entrada p { margin: 0; color: var(--tenue); }
+.entrada label { font: 12px/1 var(--mono); color: var(--tenue); text-transform: uppercase; letter-spacing: 0.08em; }
+.ayuda { font-size: 13px; }
+
+/* -------------------------------------------------------------------- barra */
+.barra {
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--borde);
+  background: var(--panel);
+  position: sticky; top: 0; z-index: 3;
+}
+.marca { font-weight: 600; letter-spacing: -0.01em; }
+
+.cuerpo { display: grid; grid-template-columns: 264px 1fr; align-items: start; }
+.cuerpo.conPanel { grid-template-columns: 264px 1fr minmax(380px, 30vw); }
+/* En pantallas angostas el panel se superpone en vez de exprimir la grilla. */
+@media (max-width: 1200px) {
+  .cuerpo.conPanel { grid-template-columns: 264px 1fr; }
+  .cuerpo.conPanel .panel {
+    position: fixed; top: 41px; right: 0; bottom: 0; width: min(460px, 92vw); z-index: 6;
+    box-shadow: -12px 0 24px rgba(0,0,0,.45);
+  }
+}
+@media (max-width: 720px) {
+  .cuerpo, .cuerpo.conPanel { grid-template-columns: 1fr; }
+}
+
+/* ------------------------------------------------------------------ lateral */
+.lateral {
+  position: sticky; top: 41px;
+  height: calc(100vh - 41px);
+  display: grid; grid-template-rows: auto 1fr; gap: 8px;
+  padding: 10px;
+  border-right: 1px solid var(--borde);
+  background: var(--panel);
+}
+.especies { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+.especies li { border-bottom: 1px solid var(--borde); }
+.especies button {
+  width: 100%; text-align: left; background: none; border: 0; border-radius: 0;
+  padding: 7px 8px; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px;
+}
+.especies button:hover { background: #22271e; }
+.especies button[aria-current="true"] { background: #22271e; box-shadow: inset 2px 0 0 var(--senal); }
+.especies .nombre { grid-column: 1; grid-row: 1; }
+.especies .cientifico { font-style: italic; color: var(--tenue); font-size: 12px; grid-column: 1; grid-row: 2; }
+.especies .cuenta { font: 12px var(--mono); color: var(--tenue); grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+.especies .revisar { color: var(--rechazo); }
+
+/* ----------------------------------------------------------------- consulta */
+main { min-width: 0; padding: 10px 12px 96px; }
+.consulta form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.consulta #texto { flex: 1 1 320px; }
+.check { display: flex; align-items: center; gap: 5px; color: var(--tenue); font-size: 13px; }
+#estadoConsulta { margin: 8px 2px 10px; }
+
+/* ------------------------------------------------------------------- grilla */
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--celda), 1fr));
+  gap: 3px;
+  outline: none;
+}
+.celda {
+  position: relative; padding: 0; border: 0; border-radius: 2px;
+  background: #0b0d09; aspect-ratio: 1; overflow: hidden; cursor: pointer;
+}
+.celda img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.celda .puesto {
+  position: absolute; left: 0; top: 0;
+  font: 11px var(--mono); color: var(--texto);
+  background: rgba(0,0,0,.62); padding: 1px 5px; border-bottom-right-radius: 3px;
+}
+.celda .sim {
+  position: absolute; right: 0; bottom: 0;
+  font: 11px var(--mono); color: var(--texto);
+  background: rgba(0,0,0,.62); padding: 1px 5px; border-top-left-radius: 3px;
+  opacity: 0; transition: opacity .12s;
+}
+.celda:hover .sim { opacity: 1; }
+/* El marco va en una capa encima de la foto: un box-shadow del botón queda
+   tapado por la imagen. */
+.celda::before { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 2px; }
+.celda.cursor::before { box-shadow: inset 0 0 0 2px var(--texto); }
+.celda[aria-pressed="true"]::before { box-shadow: inset 0 0 0 3px var(--senal); }
+.celda[aria-pressed="true"].cursor::before {
+  box-shadow: inset 0 0 0 3px var(--senal), inset 0 0 0 5px var(--texto);
+}
+.celda[aria-pressed="true"]::after {
+  content: "✓"; position: absolute; right: 3px; top: 1px;
+  color: var(--senal); font-size: 15px; text-shadow: 0 0 3px #000;
+}
+.celda.yendo { opacity: .35; }
+
+/* Ya identificada por una persona: el nombre abajo y un filo del color de lo hecho.
+   Distinto de la selección, que es el marco cian. */
+.celda .identificada {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  font: 11px/1.3 var(--mono); color: var(--hecho);
+  background: rgba(0,0,0,.72); padding: 2px 5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.celda.conIdentificacion::before { box-shadow: inset 0 0 0 2px var(--hecho); }
+.celda.conIdentificacion[aria-pressed="true"]::before { box-shadow: inset 0 0 0 3px var(--senal); }
+
+/* La línea de corte: el ranking pierde precisión hacia abajo, así que la
+   herramienta principal es decir "hasta aquí todo es esta especie". */
+.corte {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 10px;
+  margin: 6px 0; padding: 6px 8px;
+  border-top: 1px dashed var(--senal);
+  color: var(--senal);
+}
+.corte .dato { color: var(--senal); }
+
+.vacio { color: var(--tenue); padding: 40px 4px; }
+
+/* ----------------------------------------------------------------- acciones */
+.acciones {
+  position: fixed; left: 264px; right: 0; bottom: 0; z-index: 4;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: var(--panel); border-top: 1px solid var(--borde);
+}
+@media (max-width: 720px) { .acciones { left: 0; } .atajos { display: none; } }
+
+/* -------------------------------------------------------------------- panel */
+.panel {
+  position: sticky; top: 41px;
+  height: calc(100vh - 41px);
+  display: grid; grid-template-rows: auto 1fr auto;
+  border-left: 1px solid var(--borde); background: var(--panel);
+}
+.panelBarra, .panelAcciones {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-bottom: 1px solid var(--borde);
+}
+.panelAcciones { border-bottom: 0; border-top: 1px solid var(--borde); }
+.panelTitulo { font-weight: 600; }
+.panelTitulo .cientifico { font-style: italic; color: var(--tenue); font-weight: 400; }
+.panelCuerpo { overflow-y: auto; padding: 10px 12px 16px; display: grid; gap: 14px; }
+#panelFoto { width: 100%; border-radius: 3px; display: block; background: #0b0d09; }
+
+.datos { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; }
+.datos dt { font: 11px var(--mono); color: var(--tenue); text-transform: uppercase; letter-spacing: .04em; }
+.datos dd { margin: 0; font: 12px var(--mono); overflow-wrap: anywhere; }
+
+.tira h3 {
+  font: 11px var(--mono); color: var(--tenue); text-transform: uppercase;
+  letter-spacing: .04em; margin: 0 0 6px;
+}
+.tira .miniaturas { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 4px; }
+.tira button { padding: 0; border: 0; background: none; position: relative; cursor: pointer; }
+.tira img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 2px; display: block; }
+.tira .marcaIdent {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--hecho);
+}
+
+/* -------------------------------------------------------------------- visor */
+dialog {
+  border: 1px solid var(--borde); border-radius: 4px;
+  background: var(--panel); color: var(--texto);
+  padding: 0; max-width: 94vw; max-height: 94vh;
+}
+dialog::backdrop { background: rgba(0,0,0,.72); }
+#visorFoto { display: block; max-width: 92vw; max-height: 80vh; }
+.visorPie { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+
+/* -------------------------------------------------------------------- avisos */
+.avisos { position: fixed; right: 14px; bottom: 64px; z-index: 5; display: grid; gap: 6px; }
+.aviso {
+  background: var(--panel); border: 1px solid var(--borde); border-left: 3px solid var(--senal);
+  border-radius: 3px; padding: 8px 12px; max-width: 380px;
+}
+.aviso.malo { border-left-color: var(--rechazo); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

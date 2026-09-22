@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buscador por especie · HUB</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>🐆</text></svg>">
+<link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+
+<!-- Acceso: la identidad proviene de Label Studio, no de una cuenta nueva -->
+<section id="entrada" class="entrada" hidden>
+  <form id="formEntrada">
+    <h1>Buscador por especie</h1>
+    <p>Las identificaciones confirmadas se registran en Label Studio a nombre de quien
+       las confirma. El acceso usa el token personal de Label Studio.</p>
+    <label for="token">Token de Label Studio</label>
+    <input id="token" type="password" autocomplete="off" spellcheck="false"
+           placeholder="Token personal">
+    <p class="ayuda">En Label Studio: inicial de la cuenta, arriba a la derecha →
+       <em>Account &amp; Settings</em> → <em>Personal Access Token</em>.</p>
+    <button type="submit">Iniciar sesión</button>
+    <p id="errorEntrada" class="error" role="alert"></p>
+  </form>
+</section>
+
+<div id="app" hidden>
+  <header class="barra">
+    <span class="marca">Buscador <span class="tenue">por especie</span></span>
+    <span id="infoIndice" class="dato tenue"></span>
+    <span class="empuje"></span>
+    <button id="refrescar" class="plano"
+            title="Vuelve a leer las identificaciones registradas en Label Studio">
+      Actualizar identificaciones</button>
+    <span id="usuario" class="dato tenue"></span>
+  </header>
+
+  <div class="cuerpo" id="cuerpo">
+    <aside class="lateral">
+      <input id="filtroEspecie" type="search" placeholder="Filtrar especies"
+             autocomplete="off">
+      <ol id="especies" class="especies"></ol>
+    </aside>
+
+    <main>
+      <div class="consulta">
+        <form id="formBuscar">
+          <input id="texto" type="search" autocomplete="off"
+                 placeholder="Descripción libre: «animal con cría»">
+          <select id="identificadas" title="Qué detecciones mostrar">
+            <option value="no">Sin identificar</option>
+            <option value="si">Ya identificadas</option>
+            <option value="todas">Todas</option>
+          </select>
+          <label class="check"><input id="soloTexto" type="checkbox"> buscar solo por texto</label>
+          <select id="estacion"><option value="">Todas las estaciones</option></select>
+          <select id="anio"><option value="">Todos los años</option></select>
+          <button type="submit">Buscar</button>
+        </form>
+        <p id="estadoConsulta" class="dato tenue" aria-live="polite"></p>
+      </div>
+
+      <div id="grilla" class="grilla" tabindex="0" aria-label="Detecciones encontradas"></div>
+      <p id="vacio" class="vacio">Seleccione una especie de la lista para comenzar.</p>
+    </main>
+
+    <!-- Panel de la detección: se abre con clic derecho, Z o doble clic -->
+    <aside id="panel" class="panel" hidden aria-label="Detalle de la detección">
+      <div class="panelBarra">
+        <span id="panelTitulo" class="panelTitulo"></span>
+        <span class="empuje"></span>
+        <button id="panelCerrar" class="plano" title="Cerrar (Esc)">Cerrar</button>
+      </div>
+      <div class="panelCuerpo">
+        <img id="panelFoto" alt="Imagen completa con la detección señalada">
+        <dl id="panelDatos" class="datos"></dl>
+        <div id="panelMismaFoto"></div>
+        <div id="panelEvento"></div>
+        <p id="panelEnlace" class="dato"></p>
+      </div>
+      <div class="panelAcciones">
+        <button id="panelConfirmar" class="confirmar">Confirmar</button>
+        <button id="panelDescartar" class="rechazar">Descartar</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Acciones sobre la selección -->
+  <div id="acciones" class="acciones" hidden>
+    <span id="cuentaSeleccion" class="dato"></span>
+    <button id="aceptar" class="confirmar">Confirmar como <span id="nombreAceptar"></span></button>
+    <button id="rechazar" class="rechazar">Descartar para esta especie</button>
+    <button id="limpiar" class="plano">Quitar selección</button>
+    <span class="empuje"></span>
+    <span class="atajos dato tenue">Espacio: seleccionar · A: confirmar · R: descartar ·
+      L: línea de corte · Z o clic derecho: panel</span>
+  </div>
+</div>
+
+<div id="avisos" class="avisos" aria-live="polite"></div>
+<script src="/app.js"></script>
+</body>
+</html>
